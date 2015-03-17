@@ -1,0 +1,4 @@
+<config>
+    <printer>LocalPDFPrinter</printer>
+    <remmina>/home/sergei/.remmina/</remmina>
+</config>
