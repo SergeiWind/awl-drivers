@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -26,11 +27,26 @@ public class ClientConnection extends Thread {
 		this.socket = socket;
 	}
 
+	String Echo (BufferedReader in) {
+		String echo = null;
+		try {
+			echo = in.readLine();
+			System.out.println("Echo:"+echo);
+			return echo;
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return "Error reading echo";
+		}
+	}
+	
 	private void sendToClient (File file, PrintWriter out, OutputStream outStream, BufferedReader in) {
 		System.out.println("Sending file name "+file.getName());
 		out.println(file.getName());
+		Echo (in);
 		System.out.println("Sending file size "+file.length());
 		out.println(file.length());
+		Echo (in);
 		System.out.println("Sending file");
 		byte [] buffer = new byte [2048];
 		FileInputStream fileIS = null;
@@ -50,7 +66,12 @@ public class ClientConnection extends Thread {
 			e.printStackTrace();
 		};
 		System.out.println("File sent.");
-
+		try {
+			fileIS.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public void run () {
@@ -64,8 +85,8 @@ public class ClientConnection extends Thread {
 
 		try {
 			outStream = socket.getOutputStream();
-			out = new PrintWriter(outStream, true);
-			in = new BufferedReader(new InputStreamReader( socket.getInputStream()));
+			out = new PrintWriter(new OutputStreamWriter(outStream, "UTF-8"), true);
+			in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -93,8 +114,12 @@ public class ClientConnection extends Thread {
 					File [] files = file.listFiles();
 					for (File fileItem : files) {
 						sendToClient (fileItem, out, outStream, in);
-						fileItem.delete();
-						System.out.println("File deleted.");
+						boolean fileDeleted = fileItem.delete();
+						if (fileDeleted) {
+							System.out.println("File deleted.");
+						} else {
+							System.out.println("File not deleted.");
+						}
 					}
 				}
 			} else {
