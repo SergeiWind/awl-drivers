@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -22,17 +23,30 @@ import java.net.UnknownHostException;
 public class AwlConnection extends Thread {
 	String serverIP;
 	String user;
+	boolean isActive;
+	Socket awlServerSocket;
 
-	public AwlConnection (String serverIP, String user) {
+	public AwlConnection(String serverIP, String user) {
 		this.serverIP = serverIP;
 		this.user = user;
 	}
 
-	public void run () {
-		this.establishConnection (serverIP, user);
+	public void run() {
+		this.isActive = true;
+		this.establishConnection(serverIP, user);
 	}
 
-	void receiveFileFromServer (PrintWriter outWriter, BufferedReader inBufferedReader, InputStream inStream) {
+	public void interrupt(){
+		this.isActive = false;
+		try {
+			this.awlServerSocket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	void receiveFileFromServer(PrintWriter outWriter, BufferedReader inBufferedReader, InputStream inStream) {
 		try {
 			String fileName = inBufferedReader.readLine();
 			System.out.println("Receiving file "+fileName);
@@ -64,24 +78,28 @@ public class AwlConnection extends Thread {
 
 
 		} catch (IOException e) {
-			System.out.println("Error reading Stream.");
-			e.printStackTrace();
+			System.out.println("Error reading Stream or socket closed");
 		}
-
 	}
+
+	/**
+	 * Try to establish connection with the awl-server according to detected RDP session
+	 * @param serverIP - ip address of server
+	 * @param user - username
+	 */
 	private void establishConnection(String serverIP, String user) {
-		// TODO Auto-generated method stub
 		String data = null;
 		System.out.println("Trying to establish awl-connection to "+serverIP+" as "+user);
 		try (Socket awlServerSocket = new Socket(serverIP,AwlClient.remoteAwlPort)) {//Creating autocloseable socket
 
-			OutputStream outStream = awlServerSocket.getOutputStream(); //Creating output and input streams
-			PrintWriter outWriter=new PrintWriter(new OutputStreamWriter(outStream, "UTF-8"), true);
-			//			BufferedWriter outBufferedWriter = new BufferedWriter(outWriter);
+			this.awlServerSocket = awlServerSocket;
+			OutputStream outStream = awlServerSocket.getOutputStream(); //Creating output stream to send bytes
+			PrintWriter outWriter=new PrintWriter(new OutputStreamWriter(outStream, "UTF-8"), true); //Creating a printWriter to send lines using println
+			//BufferedWriter outBufferedWriter = new BufferedWriter(outWriter);
 
-			InputStream inStream = awlServerSocket.getInputStream();
-			InputStreamReader inStreamReader = new InputStreamReader(inStream, "UTF-8");
-			BufferedReader inBufferedReader=new BufferedReader(inStreamReader);
+			InputStream inStream = awlServerSocket.getInputStream(); //Creating input stream to receive bytes
+			InputStreamReader inStreamReader = new InputStreamReader(inStream, "UTF-8"); // Creating inputReader to read lines
+			BufferedReader inBufferedReader=new BufferedReader(inStreamReader);// Make the inputReader Buffered
 
 			outWriter.println("Hello-awl-client"); //Hello handshake
 			data = inBufferedReader.readLine();
@@ -112,8 +130,8 @@ public class AwlConnection extends Thread {
 				return;
 			}
 
-			while (true) {
-				receiveFileFromServer (outWriter, inBufferedReader, inStream);	
+			while (isActive) {
+				receiveFileFromServer(outWriter, inBufferedReader, inStream);	//receiving files
 			}
 
 
@@ -123,7 +141,7 @@ public class AwlConnection extends Thread {
 		} catch (SocketException e) {
 			System.out.println("Problem accessing or creating Socket.");
 		} catch (IOException e) {
-			System.out.println("General IO Error");
+			System.out.println("General IO Error or Socket closed");
 			e.printStackTrace();
 		};
 

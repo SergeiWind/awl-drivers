@@ -30,6 +30,7 @@ public class AwlClient {
 		
 		if (rdpPresetsFound && (printerName!=null)) {
 			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);
+			monitor.setName("RDPMonitor");
 			monitor.start();
 
 			Scanner sc = new Scanner(System.in);
