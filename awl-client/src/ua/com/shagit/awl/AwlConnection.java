@@ -90,7 +90,7 @@ public class AwlConnection extends Thread {
 	private void establishConnection(String serverIP, String user) {
 		String data = null;
 		System.out.println("Trying to establish awl-connection to "+serverIP+" as "+user);
-		try (Socket awlServerSocket = new Socket(serverIP,AwlClient.remoteAwlPort)) {//Creating autocloseable socket
+		try (Socket awlServerSocket = new Socket(serverIP,AwlClient.REMOTE_AWL_PORT)) {//Creating autocloseable socket
 
 			this.awlServerSocket = awlServerSocket;
 			OutputStream outStream = awlServerSocket.getOutputStream(); //Creating output stream to send bytes

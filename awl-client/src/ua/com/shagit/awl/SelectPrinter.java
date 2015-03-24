@@ -9,8 +9,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 /**
- * @author Shag-IT
- * Class sets the printer name - from config.xml or gets default if it is not set
+ * @author Sergeii Shakun
+ * Class gets the printer name - from config.xml or gets default if it is not set in the file
  */
 public class SelectPrinter {
 	public void getPrinterNameFromConfig() { // setting printer name from config.xml
