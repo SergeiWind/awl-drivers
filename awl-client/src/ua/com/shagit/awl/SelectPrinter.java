@@ -8,11 +8,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import org.apache.log4j.Logger;
+
 /**
  * @author Sergeii Shakun
  * Class gets the printer name - from config.xml or gets default if it is not set in the file
  */
 public class SelectPrinter {
+	public static final Logger selectPrinterLogger = Logger.getLogger("selectPrintreLogger");
+
 	public void getPrinterNameFromConfig() { // setting printer name from config.xml
 		File f = new File("config.xml");
 
@@ -23,11 +27,15 @@ public class SelectPrinter {
 			fr = new FileReader(f);
 			StringBuffer sb = new StringBuffer();
 			int a = fr.read();
-			System.out.print("Reading config.xml");
+			if (selectPrinterLogger.isInfoEnabled()) {
+				selectPrinterLogger.info("Reading config.xml");
+			}
 			while (a != -1) {
 				sb.append((char) a);
 				a = fr.read();
-				System.out.print(".");
+				if (selectPrinterLogger.isInfoEnabled()) {
+					System.out.print(".");
+				}
 			}
 			System.out.println("");
 			XMLString = sb.toString();
@@ -38,23 +46,25 @@ public class SelectPrinter {
 				XMLString = XMLString.substring(start+2+element.length(), end);
 			}
 			if (!XMLString.equals("")) {
-				System.out.println("Printer name is set to: "+XMLString);
+				if (selectPrinterLogger.isInfoEnabled()) {
+					selectPrinterLogger.info("Printer name is set to: "+XMLString);
+				}
 				AwlClient.printerName = XMLString;
 			} else {
-				System.out.println("Printer name is not set in config.xml.");
+				selectPrinterLogger.warn("Printer name is not set in config.xml.");
 				getDefaultPrinterName();
 			}
 			fr.close();
 		} catch (FileNotFoundException e) {
-			System.out.println("config.xml not found.");
+			selectPrinterLogger.error("Config.xml not found.");
 		} catch (IOException e) {
-			System.out.println("Can\'t read config.xml.");
+			selectPrinterLogger.error("Can\'t read config.xml.");
 		} catch (StringIndexOutOfBoundsException e) {
-			System.out.println("Can\'t parse config.xml or local printer name is not set in config.xml.");
+			selectPrinterLogger.warn("Can\'t parse config.xml or local printer name is not set in config.xml. Trying to get a printer from CUPS.");
 			getDefaultPrinterName(); //if printer is not set in config.xml - take it from the CUPS
 		}
 	}
-	
+
 	public void getDefaultPrinterName () {//get default printer from CUPS
 		ProcessBuilder procBuilder = new ProcessBuilder("lpstat","-d");
 		procBuilder.redirectErrorStream(true);
@@ -63,21 +73,27 @@ public class SelectPrinter {
 			InputStream stdout = process.getInputStream();
 			InputStreamReader isrStdout = new InputStreamReader(stdout);
 			BufferedReader brStdout = new BufferedReader(isrStdout);
-			String line = null;
-			String prName = null;
+			String line = "";
+			String prName = "";
 			while((line = brStdout.readLine()) != null) {
-				prName = line.substring(line.indexOf(": "), line.length());
+				if (line.contains(": ")){
+					prName = line.substring(line.indexOf(": "), line.length());
+				} else {
+					prName = "";
+				}
 			}
-			if (!prName.equals("")) {
+			if (!((prName==null)||(prName.length()==0))) {
 				AwlClient.printerName = prName;
 			}
 		} catch (IOException e) {
-			System.out.println("Can\'t execute lpstat -d command.");
+			selectPrinterLogger.error("Can\'t execute lpstat -d command.");
 		}
-		if (!AwlClient.printerName.equals("")) {
-			System.out.println("Printer name is set to "+AwlClient.printerName+" as default in CUPS");
+		if (!((AwlClient.printerName==null)||(AwlClient.printerName.length()==0))) {
+			if (selectPrinterLogger.isInfoEnabled()) {
+				selectPrinterLogger.info("Printer name is set to "+AwlClient.printerName+" as default in CUPS");
+			}
 		} else {
-			System.out.println("No local printer found.");
+			selectPrinterLogger.error("No local printer found.");
 		}
 	}
 }
