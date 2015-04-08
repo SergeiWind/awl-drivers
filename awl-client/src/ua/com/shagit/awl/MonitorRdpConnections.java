@@ -59,7 +59,8 @@ public class MonitorRdpConnections extends Thread {
 	 */
 	public void monitorRdpConnections(Lists lists) {
 		while (isActive) {
-			ProcessBuilder procBuilder = new ProcessBuilder("ss","-ptn","dport = :"+AwlClient.REMOTE_RDP_PORT);
+			Integer remoteRdpPort = Integer.parseInt(Config.rdpPort);
+			ProcessBuilder procBuilder = new ProcessBuilder("ss","-ptn","dport = :"+remoteRdpPort);
 			procBuilder.redirectErrorStream(true);
 			List<String> tempList = new ArrayList<String>(); // for storing ss util output; 
 			try {
@@ -73,7 +74,7 @@ public class MonitorRdpConnections extends Thread {
 					if (line.contains("State")) {
 						continue; //Skip the first line in ss output
 					}
-					serverIp = line.substring(0, line.indexOf(":"+AwlClient.REMOTE_RDP_PORT));
+					serverIp = line.substring(0, line.indexOf(":"+remoteRdpPort));
 					try {
 						for (int i = serverIp.length()-1; i>=0; i--) {
 							char currentChar = serverIp.charAt(i); 

@@ -18,6 +18,8 @@ import java.net.UnknownHostException;
 /**
  * @author sergei
  * Class that establishes connection to awl server for an RDP connection
+ * @param serverIP - ip address of server
+ * @param user - username
  */
 public class AwlConnection extends Thread {
 	String serverIP;
@@ -30,6 +32,7 @@ public class AwlConnection extends Thread {
 		this.user = user;
 	}
 
+	@Override
 	public void run() {
 		this.isActive = true;
 		this.establishConnection(serverIP, user);
@@ -74,8 +77,6 @@ public class AwlConnection extends Thread {
 			fileOS.close();
 			System.out.println("File received.");
 
-
-
 		} catch (IOException e) {
 			System.out.println("Error reading Stream or socket closed");
 		}
@@ -89,7 +90,8 @@ public class AwlConnection extends Thread {
 	private void establishConnection(String serverIP, String user) {
 		String data = null;
 		System.out.println("Trying to establish awl-connection to "+serverIP+" as "+user);
-		try (Socket awlServerSocket = new Socket(serverIP,AwlClient.REMOTE_AWL_PORT)) {//Creating autocloseable socket
+		Integer remoteAwlPort = Integer.parseInt(Config.awlPort); 
+		try (Socket awlServerSocket = new Socket(serverIP,remoteAwlPort)) {//Creating autocloseable socket
 
 			this.awlServerSocket = awlServerSocket;
 			OutputStream outStream = awlServerSocket.getOutputStream(); //Creating output stream to send bytes

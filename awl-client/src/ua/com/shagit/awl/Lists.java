@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * @author Sergii Shakun
- * Data class that keeps lists of servers, users and IPs form RDP client config files, also list of active RDP sessions
+ * Class that keeps lists of servers, users and IPs form RDP client config files, also list of active RDP sessions
  */
 public class Lists {
 	public List<String> serverList = new LinkedList<String>(); 		//list of FQDN from config files

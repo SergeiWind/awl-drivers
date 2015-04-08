@@ -6,44 +6,35 @@ import org.apache.log4j.Logger;
 
 /**
  * @author Sergii Shakun
- * The main class that reads config.xml, starts thread to monitor RDP connections and reads commands from keyboard (quit - to stop the awl-client)
+ * The main class that starts thread to monitor RDP connections and reads commands from keyboard (quit - to stop the awl-client)
  *
  */
 public class AwlClient {
-	public static final String REMOTE_RDP_PORT = "3389"; 	//XXX this should be read from config.xml
-	public static final int REMOTE_AWL_PORT = 3390; 		//XXX this should be read from config.xml
 	public static final Logger awlClientLogger = Logger.getLogger("awlClientLogger");
-	//	public static final Logger rootLogger = Logger.getRootLogger();
-	public static boolean remminaUsing = false;
-	public static String printerName = null;
 
 	/**
 	 * @param args
 	 * main method - no arguments needed
 	 */
 	public static void main(String[] args) {
-		boolean rdpPresetsFound = false;
 		if (awlClientLogger.isInfoEnabled()) {
 			awlClientLogger.info("Awl-drivers started.");
 		}
-		Remmina rem = new Remmina();				//Creates new instance to work with Remmina
-		Lists lists = new Lists();					//Creates new instance to keep lists of servers, users and IPs
-		SelectPrinter sp = new SelectPrinter();		//Creates new instance to get a printer name
-		sp.getPrinterNameFromConfig();				//Sets the printer name
-		//XXX This shoud be implemented in Remmina() constructor;
-		rem.setRemminaConfPath();					//Sets Remmina's path 
-		//XXX
-
-		if (remminaUsing) {							//if remmina path is in config.xml
-			rem.parseRemminaConfFile(lists);		//read lists of users and servers from remmina config file
+		Config.GetConfigInstance();						//Parsing config.xml
+		Lists lists = new Lists();						//Creates new instance to keep lists of servers, users and IPs
+		if (!Config.printerSelected) {
+			SelectPrinter sp = new SelectPrinter();		//Creates new instance to get a printer name
+			sp.getDefaultPrinterName();
+		}
+		if (Config.remminaUsing) {						
+			Remmina rem = new Remmina();				//Creates new instance to work with Remmina
+			rem.parseRemminaConfFile(lists);			//read lists of users and servers from remmina config file
 		}
 
-		if (lists.ipList.size()>0) {				//if RDP client config file is not empty
-			rdpPresetsFound = true;
-		}
-
-		if (rdpPresetsFound && !((printerName==null)||(printerName.length()==0))) {		//if we have not empty remmina config and a printer in local system
-			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);			//lets start a new thread to monitor RDP connections appearance 
+		if ((lists.ipList.size()>0) && 
+				!((Config.localPrinterName==null)||
+						(Config.localPrinterName.length()==0))) {				//if we have some servers and users and a printer in local system
+			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);	//lets start a new thread to monitor RDP connections appearance 
 			monitor.setName("RDPMonitor");
 			monitor.start();
 
