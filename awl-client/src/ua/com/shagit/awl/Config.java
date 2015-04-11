@@ -40,11 +40,18 @@ public class Config {
 			if (configLogger.isInfoEnabled()) {
 				configLogger.info("Parsing config.xml, root NodeName is "+ rootNodeName);
 			}
-			rdpPort = doc.getDocumentElement().getElementsByTagName("RdpPort").item(0).getTextContent();
+			String stringTmp = doc.getDocumentElement().getElementsByTagName("RdpPort").item(0).getTextContent();
+			if ((stringTmp!=null)&&(stringTmp!="")) {
+				rdpPort=stringTmp;
+			}
 			if (configLogger.isInfoEnabled()) {
 				configLogger.info("RdpPort set to "+ rdpPort);
 			}
+			stringTmp = doc.getDocumentElement().getElementsByTagName("AwlPort").item(0).getTextContent();
 			awlPort = doc.getDocumentElement().getElementsByTagName("AwlPort").item(0).getTextContent();
+			if ((stringTmp!=null)&&(stringTmp!="")) {
+				awlPort=stringTmp;
+			}
 			if (configLogger.isInfoEnabled()) {
 				configLogger.info("AwlPort set to "+ awlPort);
 			}

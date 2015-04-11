@@ -1,4 +1,6 @@
 <config>
-    <printer>LocalPDFPrinter</printer>
-    <remmina>/home/sergei/.remmina/</remmina>
+    <RdpPort>3389</RdpPort>
+    <AwlPort>3390</AwlPort>
+    <LocalPrinterName></LocalPrinterName>
+    <RemminaConfigPath>/home/sergei/.remmina/</RemminaConfigPath>
 </config>
