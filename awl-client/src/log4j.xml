@@ -24,6 +24,14 @@
         <level value="INFO"></level>
         <appender-ref ref="consoleAppender"></appender-ref>
     </logger>
+    <logger name="monitorRdpConnectionLogger" additivity="false">
+        <level value="INFO"></level>
+        <appender-ref ref="consoleAppender"></appender-ref>
+    </logger>
+    <logger name="awlConnectionLogger" additivity="false">
+        <level value="INFO"></level>
+        <appender-ref ref="consoleAppender"></appender-ref>
+    </logger>
     <root>
 	<level value="ERROR"/>
         <appender-ref ref="consoleAppender"/>

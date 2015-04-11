@@ -23,12 +23,10 @@ public class AwlClient {
 		Config.GetConfigInstance();						//Parsing config.xml
 		Lists lists = new Lists();						//Creates new instance to keep lists of servers, users and IPs
 		if (!Config.printerSelected) {
-			SelectPrinter sp = new SelectPrinter();		//Creates new instance to get a printer name
-			sp.getDefaultPrinterName();
+			new SelectPrinter().getDefaultPrinterName();		//Creates new instance to get a printer name
 		}
 		if (Config.remminaUsing) {						
-			Remmina rem = new Remmina();				//Creates new instance to work with Remmina
-			rem.parseRemminaConfFile(lists);			//read lists of users and servers from remmina config file
+			new Remmina().parseRemminaConfFile(lists);				//Creates new instance to work with Remmina, read lists of users and servers from remmina config files
 		}
 
 		if ((lists.ipList.size()>0) && 
@@ -37,6 +35,9 @@ public class AwlClient {
 			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);	//lets start a new thread to monitor RDP connections appearance 
 			monitor.setName("RDPMonitor");
 			monitor.start();
+			if (awlClientLogger.isInfoEnabled()) {
+				awlClientLogger.info("RDP Monitor process started.");
+			}
 
 			Scanner sc = new Scanner(System.in);
 			while (true) {

@@ -3,7 +3,6 @@ package ua.com.shagit.awl;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-//import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -15,6 +14,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import org.apache.log4j.Logger;
+
 /**
  * @author sergei
  * Class that establishes connection to awl server for an RDP connection
@@ -22,6 +23,7 @@ import java.net.UnknownHostException;
  * @param user - username
  */
 public class AwlConnection extends Thread {
+	public static final Logger awlConnectionLogger = Logger.getLogger("awlConnectionLogger");
 	String serverIP;
 	String user;
 	boolean isActive;
@@ -38,6 +40,9 @@ public class AwlConnection extends Thread {
 		this.establishConnection(serverIP, user);
 	}
 
+	/* 
+	 * Method to interrupt process
+	 */
 	public void interrupt(){
 		this.isActive = false;
 		try {
@@ -48,14 +53,25 @@ public class AwlConnection extends Thread {
 		}
 	}
 
+	/**
+	 * Method receives a file from server
+	 * @param outWriter
+	 * @param inBufferedReader
+	 * @param inStream
+	 * 
+	 */
 	void receiveFileFromServer(PrintWriter outWriter, BufferedReader inBufferedReader, InputStream inStream) {
 		try {
 			String fileName = inBufferedReader.readLine();
-			System.out.println("Receiving file "+fileName);
+			if (awlConnectionLogger.isInfoEnabled()) {
+				awlConnectionLogger.info("Receiving file "+fileName);
+			}
 			outWriter.println(fileName);
 
 			String fileSizeStr = inBufferedReader.readLine();
-			System.out.println("Filesize "+fileSizeStr);
+			if (awlConnectionLogger.isInfoEnabled()) {
+				awlConnectionLogger.info("Filesize "+fileSizeStr);
+			}
 			Integer fileSize = Integer.parseInt(fileSizeStr);
 			outWriter.println(fileSizeStr);
 
@@ -71,14 +87,36 @@ public class AwlConnection extends Thread {
 					fileOS.write(buffer,0, bytesRead);
 				}
 			} catch (IOException e) {
-				System.out.println("Error reading file "+fileName);
-				e.printStackTrace();
+				awlConnectionLogger.error("Error reading file "+fileName);
 			};
 			fileOS.close();
-			System.out.println("File received.");
-
+			if (awlConnectionLogger.isInfoEnabled()) {
+				awlConnectionLogger.info("File received.");
+			}
 		} catch (IOException e) {
-			System.out.println("Error reading Stream or socket closed");
+			awlConnectionLogger.error("Error reading Stream or socket closed");
+		}
+	}
+
+	/**
+	 * Method sends a @param command to server, waits for answer, then if answer is not null and equals @param answer it logs @param messageOk else @param messageError
+	 * returns true if everything is ok, else returns false
+	 * @param outWriter
+	 * @param inBufferedReader
+	 * @throws IOException
+	 */
+	private boolean sendCommandReceiveAnswer(String command, String answer, String messageOk,String messageError, 
+											PrintWriter outWriter, BufferedReader inBufferedReader) throws IOException {
+		outWriter.println(command); //Hello handshake
+		String data = inBufferedReader.readLine();
+		if ((data!=null)&&(data.equals(answer))) {
+			if (awlConnectionLogger.isInfoEnabled()) {
+				awlConnectionLogger.info(messageOk);
+			}
+			return true;
+		} else {
+			awlConnectionLogger.error(messageError);
+			return false;
 		}
 	}
 
@@ -88,64 +126,43 @@ public class AwlConnection extends Thread {
 	 * @param user - username
 	 */
 	private void establishConnection(String serverIP, String user) {
-		String data = null;
-		System.out.println("Trying to establish awl-connection to "+serverIP+" as "+user);
+		if (awlConnectionLogger.isInfoEnabled()) {
+			awlConnectionLogger.info("Trying to establish awl-connection to "+serverIP+" as "+user);
+		}
 		Integer remoteAwlPort = Integer.parseInt(Config.awlPort); 
 		try (Socket awlServerSocket = new Socket(serverIP,remoteAwlPort)) {//Creating autocloseable socket
 
 			this.awlServerSocket = awlServerSocket;
 			OutputStream outStream = awlServerSocket.getOutputStream(); //Creating output stream to send bytes
 			PrintWriter outWriter=new PrintWriter(new OutputStreamWriter(outStream, "UTF-8"), true); //Creating a printWriter to send lines using println
-			//BufferedWriter outBufferedWriter = new BufferedWriter(outWriter);
 
 			InputStream inStream = awlServerSocket.getInputStream(); //Creating input stream to receive bytes
 			InputStreamReader inStreamReader = new InputStreamReader(inStream, "UTF-8"); // Creating inputReader to read lines
 			BufferedReader inBufferedReader=new BufferedReader(inStreamReader);// Make the inputReader Buffered
 
-			outWriter.println("Hello-awl-client"); //Hello handshake
-			data = inBufferedReader.readLine();
-			if (data.equals("Hello-awl-server")) {
-				System.out.println("Server hello OK.");
-			} else {
-				System.out.println("Unknown server type. Closing thread.");
+			if (!sendCommandReceiveAnswer("Hello-awl-client", "Hello-awl-server", "Server hello OK.", 
+											"Unknown server type. Closing thread.", outWriter, inBufferedReader)) {
 				return;
-			}
-
-			outWriter.println(user); //Sending username
-			data = inBufferedReader.readLine();
-			if (data.equals("User-ok")) {
-				System.out.println("Username sent.");
-			} else {
-				System.out.println("Error sending username. Closing thread.");
+			}; //Hello handshake - return if not successful
+			if (!sendCommandReceiveAnswer(user, "User-ok", "Username sent.", "Error sending username. Closing thread.", outWriter, inBufferedReader)) {
 				return;
-			}
-
-			String hostName = InetAddress.getLocalHost().getHostName(); //Sending client hostname
-			outWriter.println(hostName);
-			data = inBufferedReader.readLine();
-			if (data.equals("Hostname-ok")) {
-				System.out.println("Local hostname "+hostName+" sent.");
-				System.out.println("Ready to receive files.");
-			} else {
-				System.out.println("Error sending hostname. Closing thread.");
+			}	//Sending username
+			String hostName = InetAddress.getLocalHost().getHostName(); //Getting client local hostname
+			if (!sendCommandReceiveAnswer(hostName, "Hostname-ok", "Local hostname "+hostName+" sent. Ready to receive files.", 
+											"Error sending hostname. Closing thread.", outWriter, inBufferedReader)) {
 				return;
-			}
+			} //Sending hostname
 
 			while (isActive) {
 				receiveFileFromServer(outWriter, inBufferedReader, inStream);	//receiving files
 			}
 
-
 		} catch (UnknownHostException e) {
-			System.out.println("Error in server IP adress");
-			e.printStackTrace();
+			awlConnectionLogger.error("Error in server IP adress");
 		} catch (SocketException e) {
-			System.out.println("Problem accessing or creating Socket.");
+			awlConnectionLogger.error("Problem accessing or creating Socket.");
 		} catch (IOException e) {
-			System.out.println("General IO Error or Socket closed");
-			e.printStackTrace();
+			awlConnectionLogger.error("General IO Error or Socket closed");
 		};
-
-
 	}
 }
