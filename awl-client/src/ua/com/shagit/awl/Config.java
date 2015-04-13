@@ -48,7 +48,6 @@ public class Config {
 				configLogger.info("RdpPort set to "+ rdpPort);
 			}
 			stringTmp = doc.getDocumentElement().getElementsByTagName("AwlPort").item(0).getTextContent();
-			awlPort = doc.getDocumentElement().getElementsByTagName("AwlPort").item(0).getTextContent();
 			if ((stringTmp!=null)&&(stringTmp!="")) {
 				awlPort=stringTmp;
 			}
