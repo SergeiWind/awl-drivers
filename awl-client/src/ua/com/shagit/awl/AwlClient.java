@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
  *
  */
 public class AwlClient {
-	public static final Logger awlClientLogger = Logger.getLogger("awlClientLogger");
+	private static final Logger awlClientLogger = Logger.getLogger("awlClientLogger");
 
 	/**
 	 * @param args
@@ -21,7 +21,7 @@ public class AwlClient {
 			awlClientLogger.info("Awl-drivers started.");
 		}
 		Config.GetConfigInstance();						//Parsing config.xml
-		Lists lists = new Lists();						//Creates new instance to keep lists of servers, users and IPs
+		Lists lists = Lists.GetListsInstance();			//Creates new instance to keep lists of servers, users and IPs
 		if (!Config.printerSelected) {
 			new SelectPrinter().getDefaultPrinterName();		//Creates new instance to get a printer name
 		}

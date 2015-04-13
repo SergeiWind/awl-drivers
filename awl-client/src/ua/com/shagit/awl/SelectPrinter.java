@@ -12,12 +12,12 @@ import org.apache.log4j.Logger;
  * Class gets default printer name from system
  */
 public class SelectPrinter {
-	public static final Logger selectPrinterLogger = Logger.getLogger("selectPrinterLogger");
+	private static final Logger selectPrinterLogger = Logger.getLogger("selectPrinterLogger");
 
 	/**
 	 * get default printer from CUPS
 	 */
-	public void getDefaultPrinterName () {
+	protected void getDefaultPrinterName () {
 		ProcessBuilder procBuilder = new ProcessBuilder("lpstat","-d");
 		procBuilder.redirectErrorStream(true);
 		try {

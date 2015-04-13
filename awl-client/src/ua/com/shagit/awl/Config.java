@@ -16,8 +16,8 @@ import org.xml.sax.SAXException;
  * Class that contains configuration from Config.xml 
  */
 public class Config {
-	public static final Logger configLogger = Logger.getLogger("configLogger");
-	protected static Config configXml;
+	private static final Logger configLogger = Logger.getLogger("configLogger");
+	private static Config configXml;
 	protected static String rdpPort = "3389";		//default value is 3389
 	protected static String awlPort = "3390";		//default value is 3390
 	protected static String localPrinterName;

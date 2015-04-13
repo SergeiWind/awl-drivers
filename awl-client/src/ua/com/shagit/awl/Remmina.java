@@ -13,7 +13,7 @@ import org.ini4j.Wini;
  * If there is a path to Remmina RDP client in config.xml, this class fills Lists with users and servers from Remmina presets
  */
 public class Remmina {
-	public static final Logger remminaLogger = Logger.getLogger("remminaLogger");
+	private static final Logger remminaLogger = Logger.getLogger("remminaLogger");
 
 	/**
 	 * @return Config.remminaConfigPath

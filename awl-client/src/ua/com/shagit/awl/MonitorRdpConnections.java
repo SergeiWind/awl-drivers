@@ -15,9 +15,9 @@ import org.apache.log4j.Logger;
  *
  */
 public class MonitorRdpConnections extends Thread {
-	Lists lists; //lists of servers, users and connections
+	private Lists lists; //lists of servers, users and connections
 	private volatile boolean isActive = true; //client works while isActive = true
-	public static final Logger monitorRdpConnectionLogger = Logger.getLogger("monitorRdpConnectionLogger");
+	private static final Logger monitorRdpConnectionLogger = Logger.getLogger("monitorRdpConnectionLogger");
 
 	/**
 	 * Constructor
@@ -46,7 +46,7 @@ public class MonitorRdpConnections extends Thread {
 	 * Terminates thread by name
 	 * @param threadName - thread name to terminate in username@serverIP format
 	 */
-	void TerminateThread(String threadName) {
+	private void TerminateThread(String threadName) {
 		ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
 		Thread[] threads = new Thread[threadGroup.activeCount()];
 		int numberOfThreads = threadGroup.enumerate(threads, false);
@@ -63,7 +63,7 @@ public class MonitorRdpConnections extends Thread {
 	 * Runs "ss -ptn dport = :3389 to monitor RDP connections"
 	 * @param lists
 	 */
-	public void monitorRdpConnections(Lists lists) {
+	private void monitorRdpConnections(Lists lists) {
 		while (isActive) {
 			Integer remoteRdpPort = Integer.parseInt(Config.rdpPort);
 			ProcessBuilder procBuilder = new ProcessBuilder("ss","-ptn","dport = :"+remoteRdpPort);

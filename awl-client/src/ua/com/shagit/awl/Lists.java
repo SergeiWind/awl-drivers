@@ -8,9 +8,18 @@ import java.util.List;
  * Class that keeps lists of servers, users and IPs form RDP client config files, also list of active RDP sessions
  */
 public class Lists {
+	static private Lists lists = null;
 	public List<String> serverList = new LinkedList<String>(); 		//list of FQDN from config files
 	public List<String> userList = new LinkedList<String>(); 		//list of users from config files
 	public List<String> ipList = new LinkedList<String>(); 			//list of resolved ip from FQDN
 	public List<String> rdpSessionsList = new LinkedList<String>(); //list of current RDP sessions
 
+	private Lists() {};
+	
+	static protected Lists GetListsInstance() {
+		if (lists==null) {
+			lists = new Lists();
+		}
+		return lists;
+	}
 }

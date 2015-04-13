@@ -23,17 +23,25 @@ import org.apache.log4j.Logger;
  * @param user - username
  */
 public class AwlConnection extends Thread {
-	public static final Logger awlConnectionLogger = Logger.getLogger("awlConnectionLogger");
-	String serverIP;
-	String user;
-	boolean isActive;
-	Socket awlServerSocket;
+	private static final Logger awlConnectionLogger = Logger.getLogger("awlConnectionLogger");
+	private String serverIP;
+	private String user;
+	private boolean isActive;
+	private Socket awlServerSocket;
 
+	/**
+	 * Constructor
+	 * @param serverIP
+	 * @param user
+	 */
 	public AwlConnection(String serverIP, String user) {
 		this.serverIP = serverIP;
 		this.user = user;
 	}
 
+	/* 
+	 * Starts new thread
+	 */
 	@Override
 	public void run() {
 		this.isActive = true;
@@ -48,8 +56,7 @@ public class AwlConnection extends Thread {
 		try {
 			this.awlServerSocket.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			awlConnectionLogger.error("Unable to close socket while terminating thread ");
 		}
 	}
 
@@ -60,7 +67,7 @@ public class AwlConnection extends Thread {
 	 * @param inStream
 	 * 
 	 */
-	void receiveFileFromServer(PrintWriter outWriter, BufferedReader inBufferedReader, InputStream inStream) {
+	private void receiveFileFromServer(PrintWriter outWriter, BufferedReader inBufferedReader, InputStream inStream) {
 		try {
 			String fileName = inBufferedReader.readLine();
 			if (awlConnectionLogger.isInfoEnabled()) {
