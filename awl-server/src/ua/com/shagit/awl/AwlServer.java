@@ -1,23 +1,38 @@
 package ua.com.shagit.awl;
 
-public class AwlServer {
-	public static final String remoteAwlPort = "3390";
-	public static String pdfFolder = null;
+import java.io.IOException;
+import java.util.Scanner;
 
+import org.apache.log4j.Logger;
+
+/**
+ * @author Sergii Shakun
+ * This is main class that starts the server
+ */
+public class AwlServer {
+	public static final Logger awlServerLogger = Logger.getLogger("awlServerLogger");
+	/**
+	 * @param args
+	 * Main method
+	 */
 	public static void main(String[] args) {
-		System.out.println("Awl-drivers started.");
-		
-		ServerConfig cfg = new ServerConfig();
-		cfg.ParseConfig();
-		if (pdfFolder==null) {
-			System.out.println("Error. Stopping awl-driver.");
-			return;
-		}
-		
+		awlServerLogger.info("Awl server started.");
+		ServerConfig.GetConfigInstance();
 		Listnerer listnerer = new Listnerer ();
 		listnerer.start();
-		
-		
+		Scanner sc = new Scanner(System.in);
+		while (true) {
+			String command = sc.next();		//Reads a line from keyboard
+			if (command.equalsIgnoreCase("quit") || command.equalsIgnoreCase("exit") || command.equalsIgnoreCase("stop")) {	//If it is "quit||exit||stop" - quits
+					try {
+						listnerer.finish();
+					} catch (IOException e) {
+						awlServerLogger.error("Can not close server socket.");
+					}
+				break;
+			}
+		}
+		sc.close();
+		awlServerLogger.info("Awl server stopped.");
 	}
-
 }

@@ -1,12 +1,10 @@
 package ua.com.shagit.awl;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -106,13 +104,15 @@ public class ClientConnection extends Thread {
 				out.println("Hostname-ok");
 				System.out.println("Ready to send files.");
 				while (true) {
-					File file = new File(AwlServer.pdfFolder+"//"+user);
+					File file = new File(ServerConfig.pdfFolder+"//"+user);
 					if (!file.isDirectory()) {
 						System.out.println("Error in path to user directory. Exiting thread");
 						return;
 					}
 					File [] files = file.listFiles();
 					for (File fileItem : files) {
+						
+						while (!fileItem.renameTo(fileItem)) {}; //waits while file is not busy to send it
 						sendToClient (fileItem, out, outStream, in);
 						boolean fileDeleted = fileItem.delete();
 						if (fileDeleted) {
