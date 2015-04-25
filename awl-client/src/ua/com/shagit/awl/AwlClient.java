@@ -2,49 +2,58 @@ package ua.com.shagit.awl;
 
 import java.util.Scanner;
 
-public class AwlClient {
-	public static final String remoteRdpPort = "3389";
-	public static final int remoteAwlPort = 3390;
-	public static boolean remminaUsing = false;
-	public static boolean rdpPresetsFound = false;
-	public static String printerName = null;
+import org.apache.log4j.Logger;
 
+/**
+ * @author Sergii Shakun
+ * The main class that starts thread to monitor RDP connections and reads commands from keyboard (quit - to stop the awl-client)
+ *
+ */
+public class AwlClient {
+	private static final Logger awlClientLogger = Logger.getLogger("awlClientLogger");
 
 	/**
 	 * @param args
+	 * main method - no arguments needed
 	 */
 	public static void main(String[] args) {
-		System.out.println("Awl-drivers started.");
-		Remmina rem = new Remmina();
-		Lists lists = new Lists();
-		SelectPrinter sp = new SelectPrinter();
-		sp.getPrinterNameFromConfig();
-		rem.setRemminaConfPath();
-		
-		if (remminaUsing) {
-			rem.parseRemminaConfFile(lists);
+		if (awlClientLogger.isInfoEnabled()) {
+			awlClientLogger.info("Awl-drivers started.");
 		}
-		if (lists.ipList.size()>0) {
-			rdpPresetsFound = true;
+		Config.GetConfigInstance();						//Parsing config.xml
+		Lists lists = Lists.GetListsInstance();			//Creates new instance to keep lists of servers, users and IPs
+		if (!Config.printerSelected) {
+			new SelectPrinter().getDefaultPrinterName();		//Creates new instance to get a printer name
 		}
-		
-		if (rdpPresetsFound && (printerName!=null)) {
-			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);
+		if (Config.remminaUsing) {						
+			new Remmina().parseRemminaConfFile(lists);				//Creates new instance to work with Remmina, read lists of users and servers from remmina config files
+		}
+
+		if ((lists.ipList.size()>0) && 
+				!((Config.localPrinterName==null)||
+						(Config.localPrinterName.length()==0))) {				//if we have some servers and users and a printer in local system
+			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);	//lets start a new thread to monitor RDP connections appearance 
+			monitor.setName("RDPMonitor");
 			monitor.start();
+			if (awlClientLogger.isInfoEnabled()) {
+				awlClientLogger.info("RDP Monitor process started.");
+			}
 
 			Scanner sc = new Scanner(System.in);
 			while (true) {
-				String command = sc.next();
-				if (command.equals("quit")) {
-					monitor.finish();
+				String command = sc.next();		//Reads a line from keyboard
+				if (command.equalsIgnoreCase("quit") || command.equalsIgnoreCase("exit") || command.equalsIgnoreCase("stop")) {	//If it is "quit||exit||stop" - quits
+					monitor.finish(); 	//Sets flag to stop thread that monitors RDP sessions
 					break;
 				}
 			}
 			sc.close();
 		} else {
-			System.out.println("No RDP presets found or No local printer is set.");
+			awlClientLogger.error("No RDP presets found or No local printer is set. Fill in profile in your RDP client and setup the printer.");
 		}
-		System.out.println("Awl-drivers stopped.");
+		if (awlClientLogger.isInfoEnabled()) {
+			awlClientLogger.info("Awl-drivers stopped.");
+		}
 	}
 
 }
