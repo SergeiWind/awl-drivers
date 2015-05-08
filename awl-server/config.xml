@@ -1,3 +1,5 @@
 <config>
-	<pdffolder>c:\PdfFiles</pdffolder>
+	<bindIp>192.168.1.109</bindIp>
+	<awlPort>3390</awlPort>
+	<pdfFolder>c:\PdfFiles</pdfFolder>
 </config>

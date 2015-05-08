@@ -1,16 +1,12 @@
 package ua.com.shagit.awl;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+
 import java.net.InetAddress;
 import java.net.Socket;
 
@@ -21,32 +17,36 @@ import java.net.Socket;
  */
 public class ClientConnection extends Thread {
 
-	Socket socket;
+	private Socket socket;
+	private boolean isActive = true;
 
 	public ClientConnection (Socket socket) {
 		this.socket = socket;
 	}
 
-	String Echo (BufferedReader in) {
+	void Echo (DataInputStream in) {
 		String echo = null;
 		try {
-			echo = in.readLine();
+			echo = in.readUTF();
 			System.out.println("Echo:"+echo);
-			return echo;
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return "Error reading echo";
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
-	
-	private void sendToClient (File file, PrintWriter out, OutputStream outStream, BufferedReader in) {
+
+	private void sendToClient (File file, DataOutputStream out, DataInputStream in) {
 		System.out.println("Sending file name "+file.getName());
-		out.println(file.getName());
-		Echo (in);
-		System.out.println("Sending file size "+file.length());
-		out.println(file.length());
-		Echo (in);
+		try {
+
+			out.writeUTF(file.getName());
+			out.flush();
+			Echo (in);
+			out.writeLong(file.length());
+			out.flush();
+			Echo (in);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		System.out.println("Sending file");
 		byte [] buffer = new byte [2048];
 		FileInputStream fileIS = null;
@@ -58,9 +58,11 @@ public class ClientConnection extends Thread {
 		}
 
 		try {
-			while(fileIS.read(buffer, 0, 2048)!=-1) {
-				outStream.write(buffer);
+			Integer bytesRead;
+			while((bytesRead=fileIS.read(buffer))>0) {
+				out.write(buffer, 0, bytesRead);
 			}
+			out.flush();
 		} catch (IOException e) {
 			System.out.println("Error reading file "+file);
 			e.printStackTrace();
@@ -69,65 +71,78 @@ public class ClientConnection extends Thread {
 		try {
 			fileIS.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	public void terminate () {
+		this.isActive = false;
+	};
+
+
 	public void run () {
 
-		PrintWriter out = null;
-		BufferedReader in = null;
-		OutputStream outStream = null;
+		DataOutputStream out = null;
+		DataInputStream in = null;
 		String data = null;
 		String user = null;
 		String clientHostName = null;
 
 		try {
-			outStream = socket.getOutputStream();
-			out = new PrintWriter(new OutputStreamWriter(outStream, "UTF-8"), true);
-			in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+			socket.setTcpNoDelay(true);
+			out = new DataOutputStream(socket.getOutputStream());
+			in = new DataInputStream(socket.getInputStream());
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
 		System.out.println("New incoming connection thread starded.");
 
 		try {
-			data = in.readLine();
+			data = in.readUTF();
 			if (data.equals("Hello-awl-client")) {
 				System.out.println("Client hello OK.");
-				out.println("Hello-awl-server");
-				user = in.readLine();
+				out.writeUTF("Hello-awl-server");
+				out.flush();
+				user = in.readUTF();
 				System.out.println("User: "+user);
-				out.println("User-ok");
-				clientHostName = in.readLine();
+				out.writeUTF("User-ok");
+				out.flush();
+				clientHostName = in.readUTF();
 				System.out.println("Client hostname: "+clientHostName);
 				System.out.println("Server hostname: "+InetAddress.getLocalHost().getHostName());
-				out.println("Hostname-ok");
+				out.writeUTF("Hostname-ok");
+				out.flush();
 				System.out.println("Ready to send files.");
-				while (true) {
-					File file = new File(AwlServer.pdfFolder+"//"+user);
+				while (isActive) {
+					File file = new File(ServerConfig.pdfFolder+"//"+user);
 					if (!file.isDirectory()) {
 						System.out.println("Error in path to user directory. Exiting thread");
 						return;
 					}
 					File [] files = file.listFiles();
-					for (File fileItem : files) {
-						sendToClient (fileItem, out, outStream, in);
-						boolean fileDeleted = fileItem.delete();
-						if (fileDeleted) {
+					for (File fileItem:files) {
+						while (!fileItem.renameTo(fileItem)) {
+							Thread.sleep(1000);
+						}; //waits while file is not busy to send it
+						if (socket.isOutputShutdown()) {
+							out = new DataOutputStream(socket.getOutputStream());
+						}
+						sendToClient (fileItem, out, in);
+						if (fileItem.delete()) {
 							System.out.println("File deleted.");
 						} else {
 							System.out.println("File not deleted.");
 						}
+						data = in.readUTF();
+						System.out.println(data);
 					}
 				}
 			} else {
 				System.out.println("Unknown connection type. Closing thread.");
 				return;
 			}
-		} catch (IOException e) {
-			System.out.println("Connection error. Closing thread.");
+		} catch (IOException | InterruptedException e) {
+			System.out.println("Connection error or can't sleep thread. Closing thread.");
 			return;
 		}
 

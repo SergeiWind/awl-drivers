@@ -1,8 +1,12 @@
 package ua.com.shagit.awl;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
+
+import org.apache.log4j.Logger;
 
 /**
  * @author shagit.com.ua <br>
@@ -10,6 +14,8 @@ import java.net.Socket;
  */
 
 public class Listnerer extends Thread {
+	private static final Logger listnererLogger = Logger.getLogger("listnererLogger");
+	private ServerSocket socket;
 
 	/**
 	 * while isActive == true - runs the cycle
@@ -17,35 +23,60 @@ public class Listnerer extends Thread {
 	private volatile boolean isActive = true;
 
 	/**
-	 *  the method to stop the cycle
+	 *  the method to stop the cycle by closing ServerSocket and setting isActive to false
+	 * @throws IOException 
 	 */
-	public void finish() {
+	public void finish() throws IOException {
 		isActive = false;
+		this.socket.close();
 	}
 
+	/* 
+	 * runs new thread
+	 */
+	@Override
 	public void run() {
 		this.monitorAwlConnection();
 	}
 
-	public void monitorAwlConnection () {
+	/**
+	 * This method creates a ServerSocket, waits for a client, accepts connection and starts a new thread to handle that connection
+	 * you may quit the endless cycle by typing exit, stop or quit
+	 */
+	private void monitorAwlConnection () {
 		ServerSocket ss = null;
 		try {
-			ss = new ServerSocket(Integer.parseInt(AwlServer.remoteAwlPort));
+			InetAddress ipAddress = null;
+			if ((ServerConfig.bindIp==null)||("*".equals(ServerConfig.bindIp))||("".equals(ServerConfig.bindIp))) {
+				ipAddress = null;
+			} else {
+				ipAddress = InetAddress.getByName(ServerConfig.bindIp);
+			}
+			ss = new ServerSocket(Integer.parseInt(ServerConfig.awlPort),0,ipAddress);
+			this.socket = ss;
 			while (isActive) {
-				System.out.println("Waiting for a client...");
+				if (listnererLogger.isInfoEnabled()) {
+					listnererLogger.info("Waiting for a client...");
+				}
 				Socket socket = ss.accept();
-				System.out.println("Got a client...");
+				if (listnererLogger.isInfoEnabled()) {
+					listnererLogger.info("Got a client...");
+				}
 				ClientConnection clientConnection = new ClientConnection (socket);
 				clientConnection.setDaemon(true);
+				clientConnection.setName(socket.getRemoteSocketAddress().toString());
 				clientConnection.start();
+				
 			}
-		} catch (Exception x) {
-			System.out.println(x);
+		} catch (UnknownHostException e) {
+			listnererLogger.error("Unknown host to bind");
+		} catch (IOException e){
+			listnererLogger.warn("I/O error while accepting connection from a client");
 		} finally {
 			try {
 				ss.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
+				listnererLogger.error("Unable to close socket to client");
 				e.printStackTrace();
 			}
 		}
