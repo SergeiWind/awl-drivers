@@ -66,7 +66,6 @@ public class Listnerer extends Thread {
 				clientConnection.setDaemon(true);
 				clientConnection.setName(socket.getRemoteSocketAddress().toString());
 				clientConnection.start();
-				
 			}
 		} catch (UnknownHostException e) {
 			listnererLogger.error("Unknown host to bind");
@@ -77,7 +76,6 @@ public class Listnerer extends Thread {
 				ss.close();
 			} catch (IOException e) {
 				listnererLogger.error("Unable to close socket to client");
-				e.printStackTrace();
 			}
 		}
 		System.out.println("Monitor stopped.");
