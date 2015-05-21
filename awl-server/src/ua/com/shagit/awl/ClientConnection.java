@@ -155,18 +155,20 @@ public class ClientConnection extends Thread {
 				if (clientConnectionLogger.isInfoEnabled()) {
 					clientConnectionLogger.info("Ready to send files.");
 				}
+				
+				File file = new File(ServerConfig.pdfFolder+"//"+user);
+				if (!file.isDirectory()) {
+					clientConnectionLogger.error("Error in path to user directory. Exiting thread");
+					return;
+				}
 				while (isActive) {
-					File file = new File(ServerConfig.pdfFolder+"//"+user);
-					if (!file.isDirectory()) {
-						clientConnectionLogger.error("Error in path to user directory. Exiting thread");
-						return;
-					}
 					File [] files = file.listFiles();
+					if (files.length==0) Thread.sleep(1000); //If folder is empty - let's wait for a second
 					for (File fileItem:files) {
 						while (!fileItem.renameTo(fileItem)) {
-							Thread.sleep(1000);	//waits while file is not busy to send it
+							Thread.sleep(3000);	//waits while file is not busy to send it
 						}; 
-						
+
 						sendToClient (fileItem, out, in);
 						
 						if (fileItem.delete()) {

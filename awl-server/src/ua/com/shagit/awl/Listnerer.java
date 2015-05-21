@@ -78,7 +78,9 @@ public class Listnerer extends Thread {
 				listnererLogger.error("Unable to close socket to client");
 			}
 		}
-		System.out.println("Monitor stopped.");
+		if (listnererLogger.isInfoEnabled()) {
+			listnererLogger.info("Monitor stopped.");
+		}
 	}
 
 }
