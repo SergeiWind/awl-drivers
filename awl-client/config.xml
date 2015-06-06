@@ -3,4 +3,7 @@
     <AwlPort>3390</AwlPort>
     <LocalPrinterName></LocalPrinterName>
     <RemminaConfigPath>/home/sergei/.remmina/</RemminaConfigPath>
+    <localPdfFolder>/home/sergei/PDFFiles/</localPdfFolder>
+    <autoPrintFiles>1</autoPrintFiles>
+    <deleteAfterPrinted>1</deleteAfterPrinted>
 </config>

@@ -29,7 +29,7 @@ public class SelectPrinter {
 			String prName = null;
 			while((line = brStdout.readLine()) != null) {
 				if (line.contains(": ")){
-					prName = line.substring(line.indexOf(": "), line.length());
+					prName = line.substring(line.indexOf(": ")+2, line.length());
 				} else {
 					prName = "";
 				}

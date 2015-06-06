@@ -5,7 +5,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -58,6 +57,23 @@ public class AwlConnection extends Thread {
 	}
 
 	/**
+	 * Prints the file to selected printer
+	 * @param fileName - full path to file (String)
+	 */
+	private void printFile(String fileName) {
+		ProcessBuilder procBuilder = new ProcessBuilder("lpr", "-P", Config.localPrinterName, fileName);
+		if (awlConnectionLogger.isInfoEnabled()) {
+			awlConnectionLogger.info("Executing "+procBuilder.command());
+		}
+		procBuilder.redirectErrorStream(true);
+		try {
+			procBuilder.start();
+		} catch (IOException e) {
+			awlConnectionLogger.error("Can\'t execute lpr command.");
+		}
+	}
+
+	/**
 	 * Method receives a file from server
 	 * @param outWriter
 	 * @param inBufferedReader
@@ -81,7 +97,8 @@ public class AwlConnection extends Thread {
 			out.writeUTF(fileSize.toString());
 			out.flush();
 
-			File localFile = new File(fileName);
+
+			File localFile = new File(Config.localPdfFolder+fileName);
 			FileOutputStream fileOS = new FileOutputStream(localFile);
 
 			byte[] buffer = new byte [2048];
@@ -94,11 +111,15 @@ public class AwlConnection extends Thread {
 				fileOS.write(buffer,0, (int)(fileSize%buffer.length));
 
 			} catch (IOException e) {
-				awlConnectionLogger.error("Error reading file "+fileName);
+				awlConnectionLogger.error("Error writing file "+fileName);
 			};
 			fileOS.close();
 			if (awlConnectionLogger.isInfoEnabled()) {
 				awlConnectionLogger.info("File received.");
+			}
+
+			if (Config.autoPrintFiles) {
+				printFile (Config.localPdfFolder+fileName);
 			}
 		} catch (IOException e) {
 			awlConnectionLogger.error("Error reading Stream or socket closed");

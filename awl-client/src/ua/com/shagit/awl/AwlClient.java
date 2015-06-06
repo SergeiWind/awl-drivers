@@ -1,5 +1,6 @@
 package ua.com.shagit.awl;
 
+import java.io.File;
 import java.util.Scanner;
 
 import org.apache.log4j.Logger;
@@ -20,40 +21,74 @@ public class AwlClient {
 		if (awlClientLogger.isInfoEnabled()) {
 			awlClientLogger.info("Awl-drivers started.");
 		}
-		Config.GetConfigInstance();						//Parsing config.xml
-		Lists lists = Lists.GetListsInstance();			//Creates new instance to keep lists of servers, users and IPs
+		//Parsing config.xml
+		Config.GetConfigInstance();
+		//Creates new instance to keep lists of servers, users and IPs
+		Lists lists = Lists.GetListsInstance();			
 		if (!Config.printerSelected) {
-			new SelectPrinter().getDefaultPrinterName();		//Creates new instance to get a printer name
+			//Creates new instance to get a printer name
+			new SelectPrinter().getDefaultPrinterName();		
 		}
-		if (Config.remminaUsing) {						
-			new Remmina().parseRemminaConfFile(lists);				//Creates new instance to work with Remmina, read lists of users and servers from remmina config files
+		if (Config.remminaUsing) {
+			//Creates new instance to work with Remmina, read lists of users and servers from remmina config files
+			new Remmina().parseRemminaConfFile(lists);				
 		}
-
-		if ((lists.ipList.size()>0) && 
-				!((Config.localPrinterName==null)||
-						(Config.localPrinterName.length()==0))) {				//if we have some servers and users and a printer in local system
-			MonitorRdpConnections monitor = new MonitorRdpConnections(lists);	//lets start a new thread to monitor RDP connections appearance 
-			monitor.setName("RDPMonitor");
-			monitor.start();
+		if (!Config.localPdfFolderSelected) {
+			//If local folder to store PDF files is not set in config.xml - let's do it here
+			String username = System.getProperty("user.name");
+			Config.localPdfFolder = File.separator+"home"+File.separator+username+File.separator+"PDFFiles"+File.separator;
 			if (awlClientLogger.isInfoEnabled()) {
-				awlClientLogger.info("RDP Monitor process started.");
+				awlClientLogger.info("Local PDF folder is set to "+Config.localPdfFolder);
 			}
+		}
 
-			Scanner sc = new Scanner(System.in);
-			while (true) {
-				String command = sc.next();		//Reads a line from keyboard
-				if (command.equalsIgnoreCase("quit") || command.equalsIgnoreCase("exit") || command.equalsIgnoreCase("stop")) {	//If it is "quit||exit||stop" - quits
-					monitor.finish(); 	//Sets flag to stop thread that monitors RDP sessions
-					break;
-				}
-			}
-			sc.close();
+		//Let's check if everything is ok with local PDF folder
+		File pdfFolder = new File(Config.localPdfFolder); 
+		if (!pdfFolder.exists()) {
+			pdfFolder.mkdir();
+			Config.localPdfFolderSelected = true;
 		} else {
-			awlClientLogger.error("No RDP presets found or No local printer is set. Fill in profile in your RDP client and setup the printer.");
+			if (pdfFolder.isFile()) {
+				awlClientLogger.error("Local PDF folder is not a directory. Delete the file or set the name of directory in config.xml");
+				Config.localPdfFolderSelected = false;
+			} else {
+				Config.localPdfFolderSelected = true;
+			}
 		}
+
+	if ((lists.ipList.size()>0) && 
+			//if we have a printer in local system
+			!((Config.localPrinterName==null)||
+					//if we have some servers and users 
+					(Config.localPrinterName.length()==0)||
+					//if a local folder for PDF files is set
+					(!Config.localPdfFolderSelected))) {
+		//lets start a new thread to monitor RDP connections appearance
+		MonitorRdpConnections monitor = new MonitorRdpConnections(lists);	 
+		monitor.setName("RDPMonitor");
+		monitor.start();
 		if (awlClientLogger.isInfoEnabled()) {
-			awlClientLogger.info("Awl-drivers stopped.");
+			awlClientLogger.info("RDP Monitor process started.");
 		}
+
+		Scanner sc = new Scanner(System.in);
+		while (true) {
+			//Reads a line from keyboard
+			String command = sc.next();		
+			//If it is "quit||exit||stop" - quits
+			if (command.equalsIgnoreCase("quit") || command.equalsIgnoreCase("exit") || command.equalsIgnoreCase("stop")) {
+				//Sets flag to stop thread that monitors RDP sessions
+				monitor.finish(); 	
+				break;
+			}
+		}
+		sc.close();
+	} else {
+		awlClientLogger.error("No RDP presets found or No local printer is set. Fill in profile in your RDP client and setup the printer. Also check the local PDF folder is set correctly in config.xml.");
 	}
+	if (awlClientLogger.isInfoEnabled()) {
+		awlClientLogger.info("Awl-drivers stopped.");
+	}
+}
 
 }
